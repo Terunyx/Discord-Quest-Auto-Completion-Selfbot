@@ -6,6 +6,7 @@ import { GatewaySendPayload, GatewayOpcodes } from 'discord-api-types/v10';
 import { QuestManager } from './questManager';
 import { AllQuestsResponse } from './interface';
 import { Constants } from './constants';
+import { Utils } from './utils';
 
 async function makeRequest(
 	url: string,
@@ -13,46 +14,7 @@ async function makeRequest(
 ): Promise<ResponseLike> {
 	// console.log(`Making request to ${url} with method ${init.method}...`);
 	if (init.headers) {
-		const myHeaders = new Headers(init.headers as any);
-		const isAndroidRequest = myHeaders.get('AndroidRequest') === 'true';
-		myHeaders.delete('AndroidRequest');
-		myHeaders.set(
-			'Authorization',
-			myHeaders.get('Authorization')!.replace('Bot ', ''),
-		);
-		myHeaders.append('accept-language', 'vi');
-		myHeaders.append('x-debug-options', 'bugReporterEnabled');
-		myHeaders.append('x-discord-locale', 'en-US');
-		myHeaders.append('x-discord-timezone', 'Asia/Saigon');
-		if (isAndroidRequest) {
-			myHeaders.set('User-Agent', Constants.ANDROID_USER_AGENT);
-		} else {
-			myHeaders.set('User-Agent', Constants.USER_AGENT);
-			myHeaders.append('origin', 'https://discord.com');
-			myHeaders.append('referer', 'https://discord.com/channels/@me');
-			myHeaders.append('pragma', 'no-cache');
-			myHeaders.append('priority', 'u=1, i');
-			myHeaders.append(
-				'sec-ch-ua',
-				'"Not)A;Brand";v="8", "Chromium";v="138"',
-			);
-			myHeaders.append('sec-ch-ua-mobile', '?0');
-			myHeaders.append('sec-ch-ua-platform', '"Windows"');
-			myHeaders.append('sec-fetch-dest', 'empty');
-			myHeaders.append('sec-fetch-mode', 'cors');
-			myHeaders.append('sec-fetch-site', 'same-origin');
-		}
-		myHeaders.append(
-			'x-super-properties',
-			Buffer.from(
-				JSON.stringify(
-					isAndroidRequest
-						? Constants.ANDROID_Properties
-						: Constants.Properties,
-				),
-			).toString('base64'),
-		);
-		init.headers = myHeaders;
+		init.headers = Utils.makeHeaders(init.headers as any);
 	}
 	return DefaultRestOptions.makeRequest(url, init);
 }
@@ -83,6 +45,15 @@ export class ClientQuest extends Client {
 	public websocketManager: WebSocketManager;
 	constructor(token: string) {
 		const rest = new REST({ version: '10', makeRequest }).setToken(token);
+		rest.on('rateLimited', (info: any) => {
+			console.warn(
+				`\n[RateLimit]\n` +
+					`  -> Route: ${info.method} ${info.route}\n` +
+					`  -> Scope: ${info.scope}${info.global ? ' (Global)' : ''}\n` +
+					`  -> Limit: ${info.limit} requests\n` +
+					`  -> Retry after: ${info.retryAfter}ms (${(info.retryAfter / 1000).toFixed(2)}s)\n`,
+			);
+		});
 		const gateway = new WebSocketManager({
 			token: token,
 			intents: 0,
