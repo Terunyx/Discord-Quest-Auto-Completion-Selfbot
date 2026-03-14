@@ -39,6 +39,7 @@ client.once(GatewayDispatchEvents.Ready, async ({ data, api }) => {
 	);
 	*/
 	// Disconnect
+	console.log('All quests processed. Disconnecting...');
 	await client.destroy();
 });
 
