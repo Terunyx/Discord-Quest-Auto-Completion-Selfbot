@@ -145,7 +145,9 @@ export class Utils extends null {
 	}
 	public static async updateLatestBuildVersion(): Promise<void> {
 		try {
-			console.info('Fetching latest Discord build number (Desktop Version)...');
+			console.info(
+				'Fetching latest Discord build number (Desktop Version)...',
+			);
 			const response = await fetch('https://discord.com/app', {
 				headers: { 'User-Agent': Constants.USER_AGENT },
 			});
@@ -157,7 +159,9 @@ export class Utils extends null {
 			}
 			const html = await response.text();
 			// Find JS asset files
-			let scripts = Array.from(html.match(/\/assets\/web.([a-f0-9]+)\.js/g) || []);
+			let scripts = Array.from(
+				html.match(/\/assets\/web.([a-f0-9]+)\.js/g) || [],
+			);
 			if (!scripts || scripts.length === 0) {
 				console.warn('No JS assets found in HTML.');
 				return;
@@ -191,5 +195,27 @@ export class Utils extends null {
 			console.error('Error fetching latest build number:', error);
 			return;
 		}
+	}
+	public static async extractWebhookInfo(): Promise<{ id: string; token: string } | null> {
+		const webhookUrl = process.env.WEBHOOK_URL;
+		if (!webhookUrl) {
+			console.warn('WEBHOOK_URL not set in environment variables.');
+			return null;
+		}
+		// Check valid
+		const req = await fetch(webhookUrl);
+		if (!req.ok) {
+			console.warn(`Failed to fetch webhook URL (${req.status})`);
+			return null;
+		}
+		const parts = webhookUrl.split('/');
+		const webhookPathIndex = parts.findIndex((part) => part === 'webhooks');
+		if (webhookPathIndex === -1 || parts.length < webhookPathIndex + 3) {
+			console.warn('Invalid webhook URL format.');
+			return null;
+		}
+		const id = parts[webhookPathIndex + 1];
+		const token = parts[webhookPathIndex + 2];
+		return { id, token };
 	}
 }

@@ -408,6 +408,7 @@ export class QuestManager implements Iterable<Quest> {
 				);
 			}
 			console.log(`Quest "${questName}" completed!`);
+			this.client.emitQuestCompleted(quest.id);
 		};
 		console.log(`Spoofing video for ${questName}.`);
 		await fn();
@@ -453,6 +454,7 @@ export class QuestManager implements Iterable<Quest> {
 		);
 		quest.updateUserStatus(res as any);
 		console.log(`Quest "${questName}" completed!`);
+		this.client.emitQuestCompleted(quest.id);
 	}
 	async doingPlayActivityQuest(
 		quest: Quest,
@@ -490,6 +492,7 @@ export class QuestManager implements Iterable<Quest> {
 		);
 		quest.updateUserStatus(res as any);
 		console.log(`Quest "${questName}" completed!`);
+		this.client.emitQuestCompleted(quest.id);
 	}
 	async doingAchievementInActivityQuest(quest: Quest, questName: string) {
 		// 1. Get application ID
@@ -551,5 +554,6 @@ export class QuestManager implements Iterable<Quest> {
 			return;
 		}
 		console.log(`Quest "${questName}" completed!`);
+		this.client.emitQuestCompleted(quest.id);
 	}
 }

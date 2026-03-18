@@ -1,4 +1,4 @@
-import { Client, APIGatewayBotInfo } from '@discordjs/core';
+import { Client, APIGatewayBotInfo, WebhooksAPI } from '@discordjs/core';
 import { RequestInit } from 'undici';
 import { REST, DefaultRestOptions, ResponseLike } from '@discordjs/rest';
 import { WebSocketManager, WebSocketShard } from '@discordjs/ws';
@@ -43,6 +43,9 @@ WebSocketShard.prototype.send = async function (payload: GatewaySendPayload) {
 export class ClientQuest extends Client {
 	public questManager: QuestManager | null = null;
 	public websocketManager: WebSocketManager;
+	public webhook = new WebhooksAPI(new REST());
+	#webhookId: string | null = null;
+	#webhookToken: string | null = null;
 	constructor(token: string) {
 		const rest = new REST({ version: '10', makeRequest }).setToken(token);
 		rest.on('rateLimited', (info: any) => {
@@ -75,14 +78,28 @@ export class ClientQuest extends Client {
 		};
 		super({ rest, gateway });
 		this.websocketManager = gateway;
+		gateway.on('error', () => null);
 	}
 	connect() {
-		return Utils.updateLatestBuildVersion().then(() =>
-			this.websocketManager.connect(),
-		);
+		return Promise.allSettled([
+			Utils.updateLatestBuildVersion(),
+			this.setupWebhook(),
+		]).then(() => this.websocketManager.connect()).catch((e) => {
+			console.error('Error during client connection:', e);
+			return this.sendWebhookMessage('Error during client connection: ' + e.message);
+		});
 	}
 	destroy() {
 		return this.websocketManager.destroy();
+	}
+	setupWebhook() {
+		return Utils.extractWebhookInfo().then((info) => {
+			if (info) {
+				this.#webhookId = info.id;
+				this.#webhookToken = info.token;
+				console.log('Webhook setup complete.');
+			}
+		});
 	}
 	fetchQuests(fetchExcludedQuests = false) {
 		return this.rest
@@ -98,5 +115,19 @@ export class ClientQuest extends Client {
 				this.questManager = manager;
 				return manager;
 			});
+	}
+	sendWebhookMessage(content: string) {
+		if (this.#webhookId && this.#webhookToken) {
+			this.webhook
+				.execute(this.#webhookId, this.#webhookToken, {
+					content,
+				})
+				.catch(() => {});
+		}
+	}
+	emitQuestCompleted(questId: string) {
+		return this.sendWebhookMessage(
+			`[Quest Completed!](https://discord.com/quests/${questId})`,
+		);
 	}
 }
