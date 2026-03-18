@@ -22,21 +22,23 @@ client.on(
 client.once(GatewayDispatchEvents.Ready, async ({ data, api }) => {
 	currentUserId = data.user.id;
 	console.log(`Logged in as @${data.user.username}`);
+
 	await client.fetchQuests(false);
 	const questsValid = client.questManager!.filterQuestsValidToDo();
 	console.log(`Found ${questsValid.length} valid quests to do.`);
 	await Promise.allSettled(
 		questsValid.map((quest) => client.questManager!.doingQuest(quest)),
 	);
+
 	// ! Redeem rewards for completed quests
 	// Todo: Cache quests
 	/*
 	await client.fetchQuests(false);
 	const questsToRedeem = client.questManager!.filterQuestsValidToRedeem();
 	console.log(`Found ${questsToRedeem.length} quests to redeem rewards for.`);
-	await Promise.allSettled(
-		questsToRedeem.map((quest) => client.questManager!.redeemQuest(quest)),
-	);
+	for (const quest of questsToRedeem) {
+		await client.questManager!.redeemQuest(quest);
+	}
 	*/
 	// Disconnect
 	console.log('All quests processed. Disconnecting...');

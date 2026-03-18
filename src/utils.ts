@@ -1,5 +1,7 @@
 import { Constants } from './constants';
 import { fetch } from 'undici';
+import * as readline from 'readline/promises';
+import { stdin as input, stdout as output } from 'process';
 
 export class Utils extends null {
 	public static makeHeaders(init: HeadersInit | undefined) {
@@ -10,7 +12,7 @@ export class Utils extends null {
 			'Authorization',
 			myHeaders.get('Authorization')!.replace('Bot ', ''),
 		);
-		myHeaders.append('accept-language', 'vi');
+		myHeaders.append('accept-language', 'en-US');
 		myHeaders.append('x-debug-options', 'bugReporterEnabled');
 		myHeaders.append('x-discord-locale', 'en-US');
 		myHeaders.append('x-discord-timezone', 'Asia/Saigon');
@@ -95,9 +97,12 @@ export class Utils extends null {
 				headers,
 			},
 		)
-			.then((res) => res.json() as any as {
-                token: string;
-            })
+			.then(
+				(res) =>
+					res.json() as any as {
+						token: string;
+					},
+			)
 			.then((data) => data.token)
 			.catch((e) => {
 				error = e;
@@ -128,5 +133,14 @@ export class Utils extends null {
 				return false;
 			});
 		return { success, error };
+	}
+	public static async askQuestion(promptText: string): Promise<string> {
+		const rl = readline.createInterface({ input, output });
+		try {
+			const answer = await rl.question(promptText);
+			return answer;
+		} finally {
+			rl.close();
+		}
 	}
 }
